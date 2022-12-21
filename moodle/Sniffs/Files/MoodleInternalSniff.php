@@ -133,8 +133,23 @@ class MoodleInternalSniff implements Sniff {
 
         // Having old MOODLE_INTERNAL check, warn.
         if ($hasMoodleInternal && $isOldMoodleInternal) {
-            $file->addWarning('Old MOODLE_INTERNAL check detected. Replace it by "defined(\'MOODLE_INTERNAL\') || die();"',
-                $pointer, 'MoodleInternalOld');
+            $fix = $file->addFixableWarning(
+                'Old MOODLE_INTERNAL check detected. Replace it by "defined(\'MOODLE_INTERNAL\') || die();"',
+                $pointer,
+                'MoodleInternalOld'
+            );
+
+            if ($fix) {
+                $file->fixer->beginChangeset();
+                $starttoken = $pointer;
+                $endtoken = $file->findNext(T_CLOSE_CURLY_BRACKET, $pointer);
+                for ($token = $starttoken; $token <= $endtoken; $token++) {
+                    $file->fixer->replaceToken($token, '');
+                }
+                $file->fixer->addContent($endtoken, 'defined(\'MOODLE_INTERNAL\') || die();');
+
+                $file->fixer->endChangeset();
+            }
             return;
         }
     }
