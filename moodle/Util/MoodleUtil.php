@@ -239,6 +239,29 @@ abstract class MoodleUtil {
         return null;
     }
 
+    public static function componentExists(
+        File $file,
+        string $component,
+    ): ?bool {
+        if (defined('PHPUNIT_TEST') && PHPUNIT_TEST && !empty(self::$mockedComponentMappings)) {
+            $components = self::$mockedComponentMappings; // @codeCoverageIgnore
+        } else {
+            // Verify that we are able to find a valid moodle root.
+            if (!$moodleRoot = self::getMoodleRoot($file, true)) {
+                return null;
+            }
+
+            // Load all components, associative array with keys as component and paths as values.
+            $components = self::calculateAllComponents($moodleRoot);
+            // Have been unable to load components, done.
+            if (empty($components)) {
+                return null;
+            }
+        }
+
+        return isset($components[$component]);
+    }
+
     /**
      * Try to guess moodle branch (numeric)
      *

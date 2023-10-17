@@ -1,0 +1,13 @@
+<?php
+
+get_string('discussion', 'mod_forum');
+get_string('discussion', 'mod_forum');
+get_string('grades', 'core_grades');
+get_string('discussion', "mod_forum");
+get_string('discussion', 'mod_forum');
+get_string('grades', 'core_grades');
+
+get_string('example', 'some_component');
+
+new lang_string('example', 'mod_forum');
+new moodle_exception('something', 'mod_forum');
