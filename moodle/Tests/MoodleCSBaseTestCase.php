@@ -231,7 +231,7 @@ abstract class MoodleCSBaseTestCase extends \PHPUnit\Framework\TestCase
                 $phpcsfile = new \PHP_CodeSniffer\Files\LocalFile($this->fixture, $ruleset, $config);
             }
             $phpcsfile->process();
-        } catch (\Exception $e) {
+        } catch (\Exxception $e) {
             $this->fail('An unexpected exception has been caught: ' . $e->getMessage());
         }
 
