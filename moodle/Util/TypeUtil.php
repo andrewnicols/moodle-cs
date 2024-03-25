@@ -18,6 +18,9 @@
 namespace MoodleHQ\MoodleCS\moodle\Util;
 
 use PHP_CodeSniffer\Files\File;
+use PHPCSUtils\Utils\Namespaces;
+use PHPCSUtils\Utils\UseStatements;
+use phpDocumentor\Reflection\Types\Context;
 
 /**
  * Utility class for handling types.
@@ -134,6 +137,17 @@ class TypeUtil
             }
         }
 
+        if (strpos($varType, '\\') === 0) {
+            $qualifiedType = substr($varType, 1);
+            [
+                'name' => $imports,
+            ] = self::getNamespaceAndAliases($phpcsFile, $stackPtr);
+
+            if (isset($imports[$qualifiedType])) {
+                return $imports[$qualifiedType];
+            }
+        }
+
         // Must be a custom type name.
         return $varType;
     }
@@ -160,5 +174,48 @@ class TypeUtil
             $validatedTypes[] = self::suggestType($phpcsFile, $stackPtr, $type);
         }
         return implode('|', $validatedTypes);
+    }
+
+    public static function getNamespaceAndAliases(
+        File $phpcsFile,
+        int $stackPtr
+    ): array {
+        $namespace = Namespaces::determineNamespace($phpcsFile, $stackPtr);
+        $namespacePtr = Namespaces::findNamespacePtr($phpcsFile, $stackPtr);
+
+        $imports = [];
+        $usePtr = $namespacePtr;
+        while ($usePtr = $phpcsFile->findNext(T_USE, $usePtr + 1)) {
+            $imports = UseStatements::splitAndMergeImportUseStatement($phpcsFile, $usePtr, $imports);
+        }
+
+        return array_merge($imports, [
+            'namespace' => $namespace,
+        ]);
+    }
+
+    public static function simplifyType(
+        string $varType,
+        File $phpcsFile,
+        int $stackPtr
+    ): string
+    {
+        if (strpos($varType, '\\') === 0) {
+            $qualifiedType = substr($varType, 1);
+            [
+                'namespace' => $namespace,
+                'name' => $imports,
+            ] = self::getNamespaceAndAliases($phpcsFile, $stackPtr);
+
+            if (isset($imports[$qualifiedType])) {
+                return $imports[$qualifiedType];
+            }
+
+            if (strpos($varType, "\\{$namespace}\\") === 0) {
+                return substr($varType, strlen($namespace) + 2);
+            }
+
+            return $varType;
+        }
     }
 }

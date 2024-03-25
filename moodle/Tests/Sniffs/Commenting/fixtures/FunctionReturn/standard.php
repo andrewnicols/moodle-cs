@@ -38,7 +38,7 @@ class multiple_artifact_has_file_docblock
     /**
      * Return type is documented and present in test correct.
      *
-     * @return stdClass
+     * @return \stdClass
      */
-    public function testMatchedReturnStdClass(): \stdClass {}
+    public function testMatchedReturnStdClass(): stdClass {}
 }

@@ -18,6 +18,13 @@
 namespace MoodleHQ\MoodleCS\moodle\Util;
 
 use PHP_CodeSniffer\Files\File;
+use phpDocumentor\Reflection\DocBlock\DescriptionFactory;
+use phpDocumentor\Reflection\DocBlock\StandardTagFactory;
+use phpDocumentor\Reflection\DocBlock\Tag;
+use phpDocumentor\Reflection\DocBlock\TagFactory;
+use phpDocumentor\Reflection\FqsenResolver;
+use phpDocumentor\Reflection\TypeResolver;
+use phpDocumentor\Reflection\Types\Context;
 
 /**
  * Utilities related to PHP DocBlocks.
@@ -375,5 +382,69 @@ abstract class Docblocks
             return self::$renameTags[$tagname];
         }
         return null;
+    }
+
+    /**
+     * Get the type from a tag.
+     *
+     * @param string $tag
+     * @return null|string
+     */
+    public static function getTypeFromTag(string $tag): ?string
+    {
+        $returnTag = self::getTypeAndDescriptionFromTag($tag);
+
+        return (string) $returnTag;
+    }
+
+    /**
+     * Get the description from a tag.
+     *
+     * @param string $tag
+     * @return null|string
+     */
+    public static function getDescriptionFromTag(string $tag): ?string
+    {
+
+        xdebug_break();
+        return self::getTypeAndDescriptionFromTag($tag)['description'];
+    }
+
+    /**
+     * Get the type and description from a tag.
+     *
+     * @param string $tag
+     * @return array
+     */
+    public static function getTypeAndDescriptionFromTag(string $tag, ?Context $context): Tag
+    {
+        $tagFactory = self::getTagFactory();
+
+        return $tagFactory->create($tag, $context);
+    }
+
+    public static function getTagFactory(): TagFactory
+    {
+        $fqsenResolver      = self::getFqsenResolver();
+        $tagFactory         = new StandardTagFactory($fqsenResolver);
+
+        $tagFactory->addService(new DescriptionFactory($tagFactory));
+        $tagFactory->addService(new TypeResolver($fqsenResolver));
+
+        return $tagFactory;
+    }
+
+    public static function getFqsenResolver(): FqsenResolver
+    {
+        return new FqsenResolver();
+    }
+
+    public static function getDocblockContext(File $phpcsFile, $stackPtr): ?Context
+    {
+        [
+            'namespace' => $namespace,
+            'name' => $aliases,
+        ] = TypeUtil::getNamespaceAndAliases($phpcsFile, $stackPtr);
+        return new Context($namespace, $aliases);
     }
 }

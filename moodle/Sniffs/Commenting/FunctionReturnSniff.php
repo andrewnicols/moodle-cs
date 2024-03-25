@@ -22,6 +22,8 @@ use MoodleHQ\MoodleCS\moodle\Util\TypeUtil;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
 use PHPCSUtils\Utils\FunctionDeclarations;
+use phpDocumentor\Reflection\DocBlock\Tags\Return_;
+use phpDocumentor\Reflection\Types\Context;
 
 /**
  * Checks that function parameters are correct.
@@ -29,7 +31,7 @@ use PHPCSUtils\Utils\FunctionDeclarations;
  * @copyright  2024 Andrew Lyons <andrew@nicols.co.uk>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class FunctionParamsSniff implements Sniff
+class FunctionReturnSniff implements Sniff
 {
     /**
      * Register for open tag (only process once per file).
@@ -49,13 +51,20 @@ class FunctionParamsSniff implements Sniff
     public function process(File $phpcsFile, $stackPtr) {
         while ($stackPtr = $phpcsFile->findNext(T_FUNCTION, $stackPtr + 1)) {
             $docPtr = Docblocks::getDocBlockPointer($phpcsFile, $stackPtr);
-            if ($docPtr) {
+            if ($docPtr !== null) {
                 $this->processDocblock($phpcsFile, $stackPtr, $docPtr);
             }
         }
     }
 
-    protected function processDocblock(File $phpcsFile, int $methodPtr, int $docPtr) {
+    /**
+     * Process the docblock for a function.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $methodPtr The pointer to the function.
+     * @param int $docPtr The pointer to the docblock.
+     */
+    protected function processDocblock(File $phpcsFile, int $methodPtr, int $docPtr): void {
         // Check returns first. They should be more simple.
         $this->processReturns($phpcsFile, $methodPtr, $docPtr);
         // Check the params.
@@ -63,7 +72,14 @@ class FunctionParamsSniff implements Sniff
         $methodParams = FunctionDeclarations::getParameters($phpcsFile, $methodPtr);
     }
 
-    protected function processReturns(File $phpcsFile, int $methodPtr, int $docPtr) {
+    /**
+     * Process the returns for a function.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $methodPtr The pointer to the function.
+     * @param int $docPtr The pointer to the docblock.
+     */
+    protected function processReturns(File $phpcsFile, int $methodPtr, int $docPtr): void {
         $tokens = $phpcsFile->getTokens();
 
         $docReturns = Docblocks::getMatchingDocTags($phpcsFile, $docPtr, '@return');
@@ -83,7 +99,7 @@ class FunctionParamsSniff implements Sniff
                     $docPtr,
                     'VoidReturnFound'
                 );
-            } else if (!empty($returnType)) {
+            } elseif (!empty($returnType)) {
                 $fix = $phpcsFile->addFixableError(
                     'Method has void return type, but @return %s tag found in docblock.',
                     $docPtr,
@@ -95,7 +111,7 @@ class FunctionParamsSniff implements Sniff
             if ($fix) {
                 $phpcsFile->fixer->beginChangeset();
                 // Replace from the start of the line to the next line.
-                $startOfLine = $phpcsFile->findPrevious(T_DOC_COMMENT_STAR, $docPtr - 1, null, true);
+                $startOfLine = $phpcsFile->findFirstOnLine(T_DOC_COMMENT_STAR, $docPtr);
                 $endOfLine = $phpcsFile->findNext(T_DOC_COMMENT_STAR, $docPtr + 1, null, false);
                 for ($token = $startOfLine; $token < $endOfLine; $token++) {
                     $phpcsFile->fixer->replaceToken($token, '');
@@ -106,7 +122,8 @@ class FunctionParamsSniff implements Sniff
             return;
         }
 
-        if ($methodInfo['return_type'] === '') {
+        $methodReturnType = $methodInfo['return_type'];
+        if ($methodReturnType === '') {
             // The method has no return type, so we have nothing to compare against.
             // The most we can do is to check the type.
             if (count($docReturns) > 0) {
@@ -137,7 +154,11 @@ class FunctionParamsSniff implements Sniff
         }
 
         // The type hint is there. Check it.
-        $methodReturnType = $methodInfo['return_type'];
+        $context = Docblocks::getDocblockContext($phpcsFile, $methodInfo['return_type_token']);
+        $resolver = Docblocks::getFqsenResolver();
+        $methodReturnType = (string) $resolver->resolve($methodReturnType, $context);
+        $methodReturnType = TypeUtil::simplifyType($methodReturnType, $phpcsFile, $methodPtr);
+
         if (count($docReturns) === 0) {
             $fix = $phpcsFile->addFixableError(
                 'Missing @return tag in docblock. Expected "%s"',
@@ -184,6 +205,13 @@ class FunctionParamsSniff implements Sniff
         }
     }
 
+    /**
+     * Get the documented return type.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array $docReturnPointers The pointers to the @return tags.
+     * @return array
+     */
     protected function getDocumentedReturnType(File $phpcsFile, array $docReturnPointers) {
         if (count($docReturnPointers) === 0) {
             return [
@@ -207,12 +235,17 @@ class FunctionParamsSniff implements Sniff
             )
         );
 
-        $returnDescription = $tokens[$returnTypePtr]['content'];
-        preg_match('/([^ ]*)(.*)$/', $returnDescription, $matches);
+        $context = Docblocks::getDocblockContext($phpcsFile, $returnTypePtr);
+        /** @var Return_ */
+        $returnTag = Docblocks::getTypeAndDescriptionFromTag(
+            "@return {$tokens[$returnTypePtr]['content']}",
+            $context
+        );
+
         return [
             'returnTypePointer' => $returnTypePtr,
-            'returnType' => $matches[1],
-            'returnTypeDescription' => $matches[2],
+            'returnType' => (string) $returnTag->getType(),
+            'returnTypeDescription' => (string) $returnTag->getDescription(),
         ];
     }
 }

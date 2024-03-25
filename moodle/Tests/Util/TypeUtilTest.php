@@ -92,4 +92,30 @@ final class TypeUtilTest extends MoodleCSBaseTestCase
             ['DateTimeImmutable', 'DateTimeImmutable'],
         ];
     }
+
+    public function testGetNamespaceAndAliases(): void {
+        $config = new Config();
+        $fileContent = <<<EOF
+        <?php
+
+        namespace Example\Child;
+
+        use Example\Something;
+        use SomethingElse as SE
+        use {
+            AnotherThing,
+            YetAnotherThing as YAT,
+        };
+        use function SomeFunction;
+
+        use constant Some\Constant;
+
+        class MyClass {}
+        EOF;
+        $file = new DummyFile($fileContent, new Ruleset($config), $config);
+        $file->process();
+        $ptr = $file->findNext(T_CLASS, 0);
+
+        $result = TypeUtil::getNamespaceAndAliases($file, $ptr);
+    }
 }

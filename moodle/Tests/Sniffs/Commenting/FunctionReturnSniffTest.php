@@ -20,14 +20,14 @@ namespace MoodleHQ\MoodleCS\moodle\Tests\Sniffs\Commenting;
 use MoodleHQ\MoodleCS\moodle\Tests\MoodleCSBaseTestCase;
 
 /**
- * Test the FunctionParamsSniff sniff.
+ * Test the FunctionReturnSniff sniff.
  *
  * @copyright  2024 onwards Andrew Lyons <andrew@nicols.co.uk>
  * @license    https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  *
- * @covers \MoodleHQ\MoodleCS\moodle\Sniffs\Commenting\FunctionParamsSniff
+ * @covers \MoodleHQ\MoodleCS\moodle\Sniffs\Commenting\FunctionReturnSniff
  */
-class FunctionParamsSniffTest extends MoodleCSBaseTestCase
+class FunctionReturnSniffTest extends MoodleCSBaseTestCase
 {
     /**
      * @dataProvider provider
@@ -38,11 +38,11 @@ class FunctionParamsSniffTest extends MoodleCSBaseTestCase
         array $warnings
     ): void {
         $this->setStandard('moodle');
-        $this->setSniff('moodle.Commenting.FunctionParams');
-        $this->setFixture(sprintf("%s/fixtures/FunctionParams/%s.php", __DIR__, $fixture));
+        $this->setSniff('moodle.Commenting.FunctionReturn');
+        $this->setFixture(sprintf("%s/fixtures/FunctionReturn/%s.php", __DIR__, $fixture));
         $this->setWarnings($warnings);
         $this->setErrors($errors);
-
+xdebug_break();
         $this->verifyCsResults();
     }
 
@@ -53,7 +53,7 @@ class FunctionParamsSniffTest extends MoodleCSBaseTestCase
                 'errors' => [
                     12 => 'Missing @return tag in docblock. Expected "int"',
                     27 => 'Return type should be string, but int was found',
-                    41 => 'Return type should be \stdClass, but stdClass was found',
+                    41 => 'Return type should be stdClass, but \stdClass was found',
                 ],
                 'warnings' => [],
             ],

@@ -22,6 +22,7 @@ use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\AbstractVariableSniff;
 use PHPCSUtils\Tokens\Collections;
 use PHPCSUtils\Utils\ObjectDeclarations;
+use phpDocumentor\Reflection\DocBlock;
 
 /**
  * Parses and verifies the variable doc comment.
@@ -131,7 +132,8 @@ class VariableCommentSniff extends AbstractVariableSniff
         }
 
         // Support both a var type and a description.
-        preg_match('`^((?:\|?(?:array\([^\)]*\)|[\\\\a-z0-9\[\]]+))*)( .*)?`i', $tokens[($foundVar + 2)]['content'], $varParts);
+        $varType = DocBlock::class
+    preg_match('`^((?:\|?(?:array\([^\)]*\)|[\\\\a-z0-9\[\]]+))*)( .*)?`i', $tokens[($foundVar + 2)]['content'], $varParts);
         $varType = $varParts[1];
 
         $suggestedType = TypeUtil::getValidatedType($phpcsFile, $string, $varType);
