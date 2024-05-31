@@ -87,3 +87,10 @@ class best_insertion_setup_teardown_test extends Something {
         require('somefile.php');
     }
 }
+
+class empty_setup_teardown_test extends Something {
+    public function setUp(): void {}
+    public function tearDown(): void {}
+    public static function setUpBeforeClass(): void {}
+    public static function tearDownAfterClass(): void {  } // Same line.
+}
